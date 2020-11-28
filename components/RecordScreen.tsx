@@ -1,25 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { Audio } from 'expo-av';
-import { Recording } from 'expo-av/build/Audio';
+import { Recording, Sound } from 'expo-av/build/Audio';
+import Scrubber from './Scrubber';
 
 type RecordingState = {
   recording: Audio.Recording,
   status: Audio.RecordingStatus,
+  sound: Audio.Sound | null,
 }
 
-function setRecordingStatusInterval(state: RecordingState, setState: (state: RecordingState) => void): number {
+type SetStateFn = (state: RecordingState | null) => void
+
+function setRecordingStatusInterval(state: RecordingState, setState: SetStateFn): number {
   const {recording} = state;
   return setInterval(async () => {
     const status = await recording.getStatusAsync()
-    setState({recording, status})
+    setState({recording, status, sound: null})
   }, 100)
 }
 
 // Generator which returns a function to be called when the record button is clicked.
 function recordButtonClickGen(
+  // Represents the state of the current recording. If null means no recording is in progress.
   recordingState: RecordingState | null,
   setRecordingState: (state: RecordingState | null) => void,
+  // The id of the interval function setup which repeats constantly, updating the reording status. This is needed because
+  // getting the recording status is an async process.
   intervalID: number | null,
   setIntervalID: (id: number | null) => void,
 ) {
@@ -35,7 +42,7 @@ function recordButtonClickGen(
     })
     const permissions = await Audio.requestPermissionsAsync();
     if (!permissions.granted) {
-      console.warn("you need permissions!");
+      console.warn("need recording permissions but were unabe to get them");
       return;
     }
 
@@ -43,20 +50,20 @@ function recordButtonClickGen(
       // There is no recording, create a new one and start recording.
       const recording = new Audio.Recording();
       try {
-        await recording.prepareToRecordAsync(Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY);
+        await recording.prepareToRecordAsync(Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY)
         await recording.startAsync();
         if (intervalID) {
           clearInterval(intervalID);
         }
         const status = await recording.getStatusAsync()
-        const recordingState = {recording, status};
+        const recordingState = {recording, status, sound: null}
 
-        const newIntervalID = setRecordingStatusInterval(recordingState, setRecordingState);
+        const newIntervalID = setRecordingStatusInterval(recordingState, setRecordingState)
         setIntervalID(newIntervalID)
-        setRecordingState(recordingState);
+        setRecordingState(recordingState)
       } catch (error) {
-          console.warn(error);
-          setRecordingState(recordingState);
+        console.warn(error);
+        setRecordingState(recordingState);
       }
     } else if (!recordingState.status.isRecording) {
       // There is already a recording and it is paused, unpause it.
@@ -64,17 +71,15 @@ function recordButtonClickGen(
     } else {
       // There is already a recording and it is running, pause it.
       await recordingState.recording.pauseAsync();
+      await recordingState.recording.stopAndUnloadAsync()
+      const {sound, status} = await recordingState.recording.createNewLoadedSoundAsync()
+      setRecordingState({sound, ...recordingState})
     }
   }
 }
 
-function onSaveButtonClickGen(state: RecordingState | null) {
+function onSaveButtonClickGen(state: RecordingState, setState: SetStateFn) {
   return async () => {
-    if (state === null) {
-      return null;
-    }
-
-    await state.recording.stopAndUnloadAsync()
     console.log(state.recording.getURI())
   }
 }
@@ -89,8 +94,8 @@ function RecordingDuration(props: {state: RecordingState | null}) {
   return <Text>{new Date(state.status.durationMillis).toISOString().substr(11, 8)}</Text>;
 }
 
-function SaveButton(props: {state: RecordingState | null}) {
-  const { state } = props;
+function SaveButton(props: {state: RecordingState | null, setState: SetStateFn}) {
+  const { state, setState } = props;
 
   if (state === null) {
     return null;
@@ -101,8 +106,26 @@ function SaveButton(props: {state: RecordingState | null}) {
   }
 
   return (
-    <TouchableOpacity onPress={onSaveButtonClickGen(state)}>
-      <Text>Save recording!</Text>
+    <TouchableOpacity onPress={onSaveButtonClickGen(state, setState)}>
+      <Text>Save</Text>
+    </TouchableOpacity>
+  );
+}
+
+function DiscardButton(props: {state: RecordingState | null, onPress: () => void}) {
+  const { state, onPress } = props;
+
+  if (state === null) {
+    return null;
+  }
+
+  if (state.status.isRecording) {
+    return null;
+  }
+
+  return (
+    <TouchableOpacity onPress={onPress}>
+      <Text>Discard</Text>
     </TouchableOpacity>
   );
 }
@@ -112,11 +135,29 @@ export function RecordScreen() {
   const [recordingIntervalID, setRecordingIntervalID] = useState<number | null>(null);
   const onRecordButtonClick = recordButtonClickGen(recordingState, setRecordingState, recordingIntervalID, setRecordingIntervalID);
 
-  let text = "Pause Recording"
+  let text = "Stop Recording"
   if (recordingState === null) {
     text = "Record Something!"
   } else if (!recordingState.status.isRecording) {
     text = "Resume Recording"
+  }
+
+  const discardFn = async () => {
+    if (recordingIntervalID !== null) {
+      clearInterval(recordingIntervalID)
+      setRecordingIntervalID(null)
+    }
+    if (recordingState !== null) {
+      if (!recordingState.status.isDoneRecording) {
+        await recordingState.recording.stopAndUnloadAsync()
+      }
+      setRecordingState(null)
+    }
+  }
+
+  let scrubber = null;
+  if (recordingState !== null) {
+    scrubber = <Scrubber sound={recordingState.sound} />
   }
 
   return (
@@ -125,7 +166,9 @@ export function RecordScreen() {
         <Text>{text}</Text>
       </TouchableOpacity>
       <RecordingDuration state={recordingState} />
-      <SaveButton state={recordingState} />
+      {scrubber}
+      <SaveButton state={recordingState} setState={setRecordingState} />
+      <DiscardButton state={recordingState} onPress={discardFn} />
     </>
   );
 }
