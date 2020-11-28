@@ -110,7 +110,7 @@ function SaveButton(props: {state: RecordingState | null}) {
 export function RecordScreen() {
   const [recordingState, setRecordingState] = useState<RecordingState | null>(null);
   const [recordingIntervalID, setRecordingIntervalID] = useState<number | null>(null);
-  const onRecordButtionClick = recordButtonClickGen(recordingState, setRecordingState, recordingIntervalID, setRecordingIntervalID);
+  const onRecordButtonClick = recordButtonClickGen(recordingState, setRecordingState, recordingIntervalID, setRecordingIntervalID);
 
   let text = "Pause Recording"
   if (recordingState === null) {
@@ -121,7 +121,7 @@ export function RecordScreen() {
 
   return (
     <>
-      <TouchableOpacity onPress={onRecordButtionClick} style={styles.container}>
+      <TouchableOpacity onPress={onRecordButtonClick} style={styles.container}>
         <Text>{text}</Text>
       </TouchableOpacity>
       <RecordingDuration state={recordingState} />
