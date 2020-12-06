@@ -1,6 +1,7 @@
-import React from "react";
+import React, {useEffect} from "react";
 import {Text, TouchableOpacity} from "react-native";
 import { Audio } from 'expo-av';
+import * as SQLite from 'expo-sqlite';
 
 const soundObject = new Audio.Sound();
 soundObject.setOnPlaybackStatusUpdate(async (update) => {
@@ -30,6 +31,16 @@ function onPlayButtonGenClicked() {
 }
 
 export function PlayScreen() {
+    // db name: db.db
+    // table name: recordings
+    useEffect(() => {
+        db.transaction(tx => {
+            tx.executeSql(
+                "CREATE TABLE IF NOT EXISTS recordings (id integer PRIMARY KEY NOT NULL, path text, date timestamp NOT NULL);"
+            );
+        });
+    });
+
     return (
         <>
             <TouchableOpacity onPress={onPlayButtonGenClicked()}>
