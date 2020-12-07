@@ -10,15 +10,19 @@ const state = {
     showHype: true,
 };
 const soundObject = new Audio.Sound();
-let urls: String[] = [];
+let urls: [string, number][] = [];
+let lastId = 0;
+let lastFilePath = "";
 
 function onPlayButtonGenClicked() {
     return async () => {
         const index = Math.floor(Math.random() * urls.length);
-        const filePath = urls[index];
+        const tuple = urls[index];
+        lastFilePath = tuple[0];
         const source = {
-            uri: filePath
+            uri: lastFilePath
         };
+        lastId = tuple[1];
         try {
             console.log("playing file!");
             await soundObject.loadAsync(source);
@@ -27,6 +31,17 @@ function onPlayButtonGenClicked() {
         } catch (error) {
             console.log(error);
         }
+    }
+}
+
+function onDeleteThatShitClicked() {
+    return async () => {
+        db.transaction(tx => {
+            tx.executeSql(
+                "DELETE FROM recordings WHERE id = " + lastId + ";"
+            );
+        });
+        // delete file too via lastFilePath
     }
 }
 
@@ -54,7 +69,7 @@ export function PlayScreen() {
                     for (let i = 0; i < resultSet.rows.length; i++) {
                         const item = resultSet.rows.item(i);
                         console.log(item);
-                        urls.push(item.path);
+                        urls.push([item.path, item.id]);
                     }
                 }
             );
@@ -71,7 +86,7 @@ export function PlayScreen() {
             }
             {
                 !showHype &&
-                <TouchableOpacity>
+                <TouchableOpacity onPress={onDeleteThatShitClicked()}>
                     <Text>Delete that shit</Text>
                 </TouchableOpacity>
             }
