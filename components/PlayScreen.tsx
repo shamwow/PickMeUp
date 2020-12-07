@@ -1,23 +1,29 @@
-import React from "react";
+import React, {useEffect, useState} from "react";
 import {Text, TouchableOpacity} from "react-native";
 import { Audio } from 'expo-av';
+import * as SQLite from 'expo-sqlite';
+import Consts from "../consts";
+import {useFocusEffect} from "@react-navigation/native";
 
+const db = SQLite.openDatabase("db.db");
 const soundObject = new Audio.Sound();
-soundObject.setOnPlaybackStatusUpdate(async (update) => {
-    console.log("playback status updated!");
-    console.log(update);
-    if (update.isLoaded && update.didJustFinish) {
-        await soundObject.unloadAsync()
-    }
-});
+let urls: [string, number][] = [];
+let lastId = 0;
+let lastFilePath = "";
 
 function onPlayButtonGenClicked() {
     return async () => {
-        // TODO(alex-fung): Read file name from database instead
-        const filePath = "file:///var/mobile/Containers/Data/Application/FF088D24-D732-4200-9F27-EE3783F474B0/Library/Caches/ExponentExperienceData/%2540anonymous%252FPickMeUp-423738e5-8606-403c-a52d-433a02585c1b/AV/recording-6F20CEFD-7CA6-4315-9241-339025C34015.caf";
+        if (urls.length == 0) {
+            console.log("NO FILE PATHS TO PLAY FROM");
+        }
+
+        const index = Math.floor(Math.random() * urls.length);
+        const tuple = urls[index];
+        lastFilePath = tuple[0];
         const source = {
-            uri: filePath
+            uri: lastFilePath
         };
+        lastId = tuple[1];
         try {
             console.log("playing file!");
             await soundObject.loadAsync(source);
@@ -29,12 +35,71 @@ function onPlayButtonGenClicked() {
     }
 }
 
+function onDeleteThatShitClicked() {
+    return async () => {
+        db.transaction(tx => {
+            tx.executeSql(
+                "DELETE FROM recordings WHERE id = " + lastId + ";"
+            );
+            updateUrlsInTransaction(tx);
+        });
+    }
+}
+
+function updateUrlsInTransaction(tx: SQLite.SQLTransaction) {
+    urls = [];
+    tx.executeSql(
+        "SELECT * FROM recordings;", [], (_, resultSet) => {
+            for (let i = 0; i < resultSet.rows.length; i++) {
+                const item = resultSet.rows.item(i);
+                console.log(item);
+                urls.push([item.path, item.id]);
+            }
+        }
+    );
+}
+
 export function PlayScreen() {
+    const [showHype, setShowHype] = useState(true);
+    const [showDelete, setShowDelete] = useState(false);
+
+    soundObject.setOnPlaybackStatusUpdate(async (update) => {
+        console.log("playback status updated!");
+        console.log(update);
+        if (update.isLoaded && update.didJustFinish) {
+            await soundObject.unloadAsync();
+            setShowDelete(true);
+        } else {
+            setShowHype(!update.isLoaded);
+        }
+    });
+
+    useEffect(() => {
+        db.transaction(tx => {
+            tx.executeSql(Consts.CREATE_TABLE_SQL);
+        });
+    });
+
+    useFocusEffect(() => {
+        db.transaction(tx => {
+            updateUrlsInTransaction(tx);
+        });
+    });
+
     return (
         <>
-            <TouchableOpacity onPress={onPlayButtonGenClicked()}>
-                <Text>Hype Me</Text>
-            </TouchableOpacity>
+            {
+                showHype &&
+                <TouchableOpacity onPress={onPlayButtonGenClicked()}>
+                    <Text>Hype Me</Text>
+                </TouchableOpacity>
+            }
+            {
+                showDelete &&
+                <TouchableOpacity onPress={onDeleteThatShitClicked()}>
+                    <Text>Delete that shit</Text>
+                </TouchableOpacity>
+            }
         </>
     );
 }
