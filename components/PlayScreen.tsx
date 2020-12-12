@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {Text, TouchableOpacity} from "react-native";
+import {StyleSheet, Text, TouchableOpacity, View, Image} from "react-native";
 import { Audio } from 'expo-av';
 import * as SQLite from 'expo-sqlite';
 import Consts from "../consts";
@@ -90,16 +90,76 @@ export function PlayScreen() {
         <>
             {
                 showHype &&
-                <TouchableOpacity onPress={onPlayButtonGenClicked()}>
-                    <Text>Hype Me</Text>
-                </TouchableOpacity>
+                <>
+                    <TouchableOpacity onPress={onPlayButtonGenClicked()} style={styles.listenButton}>
+                        <Image
+                            style={styles.playButtonLogo}
+                            source={require('../assets/playButton.png')}
+                        />
+                    </TouchableOpacity>
+                    <View style={styles.whiteShadow}>
+                    </View>
+                </>
             }
             {
                 showDelete &&
-                <TouchableOpacity onPress={onDeleteThatShitClicked()}>
-                    <Text>Delete that shit</Text>
+                <TouchableOpacity onPress={onDeleteThatShitClicked()} style={styles.deleteButton}>
+                    <Text style={styles.whiteText}>Delete</Text>
                 </TouchableOpacity>
             }
         </>
     );
 }
+
+const styles = StyleSheet.create({
+    whiteShadow: {
+        borderRadius: 123,
+        backgroundColor: '#E5EAF0',
+        width: 245,
+        height: 245,
+        shadowColor: "#FFFFFF",
+        shadowOffset: {
+            width: -18,
+            height: -18,
+        },
+        shadowOpacity: 1,
+        shadowRadius: 30,
+        position: 'absolute'
+    },
+    listenButton: {
+        borderRadius: 123,
+        backgroundColor: '#E5EAF0',
+        textAlign: 'center',
+        color: 'white',
+        width: 245,
+        height: 245,
+        shadowColor: "#AFC1D8",
+        shadowOffset: {
+            width: 18,
+            height: 18,
+        },
+        shadowOpacity: 1,
+        shadowRadius: 30,
+        position: 'absolute',
+        zIndex: 1,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    whiteText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: 'white'
+    },
+    deleteButton: {
+        borderRadius: 24,
+        paddingVertical: 12,
+        paddingHorizontal: 48,
+        backgroundColor: '#DE1819',
+        textAlign: 'center',
+        color: 'white'
+    },
+    playButtonLogo: {
+        width: 18,
+        height: 24,
+    },
+});
