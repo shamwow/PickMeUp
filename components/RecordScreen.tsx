@@ -2,43 +2,110 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { Audio } from 'expo-av';
 import { Recording, Sound } from 'expo-av/build/Audio';
-import Scrubber from './Scrubber';
+import Player from './Player';
 import * as SQLite from 'expo-sqlite';
 import Consts from '../consts';
+import { setStatusBarStyle } from 'expo-status-bar';
 
 const db = SQLite.openDatabase("db.db")
 
-type RecordingState = {
-  recording: Audio.Recording,
-  status: Audio.RecordingStatus,
-  sound: Audio.Sound | null,
+type RecordingScreenComponentState = {
+  recordingIntervalID: number | null,
+  recording: Audio.Recording | null,
+  durationMs: number,
+  isRecording: boolean,
 }
 
-type SetStateFn = (state: RecordingState | null) => void
+function RecordingDuration(props: {durationMs: number}) {
+  const { durationMs } = props;
+  return <Text>{new Date(durationMs).toISOString().substr(11, 8)}</Text>;
+}
 
-function setRecordingStatusInterval(state: RecordingState, setState: SetStateFn): number {
-  const {recording} = state;
-  if (recording === null) {
-    return 0
+function SaveButton(props: {onSaveClick: () => void}) {
+  const { onSaveClick } = props;
+
+  return (
+    <TouchableOpacity onPress={onSaveClick}>
+      <Text>Save</Text>
+    </TouchableOpacity>
+  );
+}
+
+function DiscardButton(props: {onPress: () => void}) {
+  const { onPress } = props;
+  return (
+    <TouchableOpacity onPress={onPress}>
+      <Text>Discard</Text>
+    </TouchableOpacity>
+  );
+}
+
+export class RecordScreen extends React.Component<{}, RecordingScreenComponentState> {
+  state: RecordingScreenComponentState = {
+    recordingIntervalID:null,
+    recording: null,
+    durationMs: 0,
+    isRecording: false,
   }
 
-  return setInterval(async () => {
-    const status = await recording.getStatusAsync()
-    setState({recording, status, sound: null})
-  }, 100)
-}
+  constructor(props: {}) {
+    super(props)
 
-// Generator which returns a function to be called when the record button is clicked.
-function recordButtonClickGen(
-  // Represents the state of the current recording. If null means no recording is in progress.
-  recordingState: RecordingState | null,
-  setRecordingState: (state: RecordingState | null) => void,
-  // The id of the interval function setup which repeats constantly, updating the reording status. This is needed because
-  // getting the recording status is an async process.
-  intervalID: number | null,
-  setIntervalID: (id: number | null) => void,
-) {
-  return async () => {
+    this.state = {
+      recordingIntervalID:null,
+      recording: null,
+      durationMs: 0,
+      isRecording: false,
+    }
+  }
+
+  clearState = async () => {
+    const {recordingIntervalID, recording} = this.state;
+
+    if (recordingIntervalID !== null) {
+      clearInterval(recordingIntervalID)
+    }
+    if (recording !== null) {
+      await recording.stopAndUnloadAsync()
+    }
+
+    this.setState({
+      recordingIntervalID:null,
+      recording: null,
+      durationMs: 0,
+      isRecording: false,
+    })
+  }
+
+  componentDidMount() {
+    db.transaction(tx => {
+      tx.executeSql(Consts.CREATE_TABLE_SQL);
+    });
+  }
+
+  componentWillUnmount = () => {
+    const {recordingIntervalID} = this.state;
+
+    if (recordingIntervalID !== null) {
+      clearInterval(recordingIntervalID)
+    }
+  }
+
+  setRecordingStatusInterval = () => {
+    return setInterval(async () => {
+      const {recording, recordingIntervalID} = this.state
+      if (recording === null) {
+        if (recordingIntervalID !== null) {
+          clearInterval(recordingIntervalID)
+        }
+        return
+      }
+      const status = await recording.getStatusAsync()
+      this.setState({durationMs: status.durationMillis, isRecording: status.isRecording})
+    }, 100)
+  }
+
+  onRecordClick = async () => {
     await Audio.setAudioModeAsync({
       allowsRecordingIOS: true,
       interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
@@ -48,47 +115,50 @@ function recordButtonClickGen(
       playThroughEarpieceAndroid: false,
       staysActiveInBackground: true,
     })
+
     const permissions = await Audio.requestPermissionsAsync();
     if (!permissions.granted) {
       console.warn("need recording permissions but were unabe to get them");
       return;
     }
 
-    if (recordingState === null || recordingState.status.isDoneRecording) {
-      // There is no recording, create a new one and start recording.
+    const {recording, isRecording} = this.state;
+    if (recording === null) {
+      // There is no recording or the recording has no status, create a new one and start recording.
       const recording = new Audio.Recording();
       try {
         await recording.prepareToRecordAsync(Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY)
         await recording.startAsync();
-        if (intervalID) {
-          clearInterval(intervalID);
-        }
         const status = await recording.getStatusAsync()
-        const recordingState = {recording, status, sound: null}
 
-        const newIntervalID = setRecordingStatusInterval(recordingState, setRecordingState)
-        setIntervalID(newIntervalID)
-        setRecordingState(recordingState)
+        const recordingIntervalID = this.setRecordingStatusInterval()
+        this.setState({recordingIntervalID, recording, durationMs: status.durationMillis, isRecording: status.isRecording})
       } catch (error) {
         console.warn(error);
-        setRecordingState(recordingState);
+        await this.clearState()
       }
-    } else if (!recordingState.status.isRecording) {
-      // There is already a recording and it is paused, unpause it.
-      await recordingState.recording.startAsync();
+    } else if (!isRecording) {
+      // There is a recording and it is not running. Start it.
+      await recording.startAsync();
     } else {
       // There is already a recording and it is running, pause it.
-      await recordingState.recording.pauseAsync();
-      await recordingState.recording.stopAndUnloadAsync()
-      const {sound, status} = await recordingState.recording.createNewLoadedSoundAsync()
-      setRecordingState({sound, ...recordingState})
+      await recording.pauseAsync();
     }
   }
-}
 
-function onSaveButtonClickGen(state: RecordingState, setState: SetStateFn) {
-  return async () => {
-    const path = state.recording.getURI();
+  onDiscardClick = async () => {
+    await this.clearState()
+  }
+
+  onSaveClick = async () => {
+    const {recording} = this.state;
+
+    if (recording === null) {
+      console.warn("did not expect recording to be null")
+      return
+    }
+
+    const path = recording.getURI();
 
     db.transaction(tx => {
       tx.executeSql(
@@ -103,102 +173,52 @@ function onSaveButtonClickGen(state: RecordingState, setState: SetStateFn) {
     });
 
     console.log(path)
-  }
-}
 
-function RecordingDuration(props: {state: RecordingState | null}) {
-  const { state } = props;
-
-  if (state === null) {
-    return null;
+    await this.clearState()
   }
 
-  return <Text>{new Date(state.status.durationMillis).toISOString().substr(11, 8)}</Text>;
-}
+  render() {
+    const {durationMs, isRecording, recording} = this.state;
 
-function SaveButton(props: {state: RecordingState | null, setState: SetStateFn}) {
-  const { state, setState } = props;
-
-  if (state === null) {
-    return null;
-  }
-
-  if (state.status.isRecording) {
-    return null;
-  }
-
-  return (
-    <TouchableOpacity onPress={onSaveButtonClickGen(state, setState)}>
-      <Text>Save</Text>
-    </TouchableOpacity>
-  );
-}
-
-function DiscardButton(props: {state: RecordingState | null, onPress: () => void}) {
-  const { state, onPress } = props;
-
-  if (state === null) {
-    return null;
-  }
-
-  if (state.status.isRecording) {
-    return null;
-  }
-
-  return (
-    <TouchableOpacity onPress={onPress}>
-      <Text>Discard</Text>
-    </TouchableOpacity>
-  );
-}
-
-export function RecordScreen() {
-  const [recordingState, setRecordingState] = useState<RecordingState | null>(null);
-  const [recordingIntervalID, setRecordingIntervalID] = useState<number | null>(null);
-  const onRecordButtonClick = recordButtonClickGen(recordingState, setRecordingState, recordingIntervalID, setRecordingIntervalID);
-
-  useEffect(() => {
-    db.transaction(tx => {
-      tx.executeSql(Consts.CREATE_TABLE_SQL);
-    });
-  })
-
-  let text = "Stop Recording"
-  if (recordingState === null) {
-    text = "Record Something!"
-  } else if (!recordingState.status.isRecording) {
-    text = "Resume Recording"
-  }
-
-  const discardFn = async () => {
-    if (recordingIntervalID !== null) {
-      clearInterval(recordingIntervalID)
-      setRecordingIntervalID(null)
+    let text = "Stop Recording"
+    if (recording === null) {
+      text = "Record Something!"
+    } else if (!isRecording) {
+      text = "Resume Recording"
     }
-    if (recordingState !== null) {
-      if (!recordingState.status.isDoneRecording) {
-        await recordingState.recording.stopAndUnloadAsync()
+
+    let player = null;
+    if (recording !== null && !isRecording) {
+      const uri = recording.getURI()
+      if (uri !== null) {
+        player = <Player soundPath={uri} durationMs={durationMs} />
       }
-      setRecordingState(null)
     }
-  }
 
-  let scrubber = null;
-  if (recordingState !== null) {
-    scrubber = <Scrubber sound={recordingState.sound} />
-  }
+    let duration = null;
+    if (recording !== null) {
+      duration = <RecordingDuration durationMs={durationMs} />
+    }
 
-  return (
-    <>
-      <TouchableOpacity onPress={onRecordButtonClick} style={styles.container}>
-        <Text>{text}</Text>
-      </TouchableOpacity>
-      <RecordingDuration state={recordingState} />
-      {scrubber}
-      <SaveButton state={recordingState} setState={setRecordingState} />
-      <DiscardButton state={recordingState} onPress={discardFn} />
-    </>
-  );
+    let discardButton = null
+    let saveButton = null
+    if (recording !== null && !isRecording) {
+      discardButton = <DiscardButton onPress={this.onDiscardClick} />
+      saveButton = <SaveButton onSaveClick={this.onSaveClick} />
+    }
+
+    return (
+      <>
+        <TouchableOpacity onPress={this.onRecordClick} style={styles.container}>
+          <Text>{text}</Text>
+        </TouchableOpacity>
+        {duration}
+        {player}
+        {saveButton}
+        {discardButton}
+      </>
+    );
+  }
 }
 
 const styles = StyleSheet.create({
