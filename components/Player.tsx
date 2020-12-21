@@ -117,9 +117,10 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
   }
 
   render() {
-    let {durationMs, positionMs} = this.state
+    const {durationMs, positionMs} = this.state
+    let durationMsDisplay = durationMs
     if (this.props.durationMs) {
-      durationMs = this.props.durationMs
+      durationMsDisplay = this.props.durationMs
     }
 
     return (
@@ -129,7 +130,7 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
         </TouchableOpacity>
         <View style={{flexDirection: 'row', marginEnd: 40, marginStart: 40}}>
           <Text style={{flex: 1, textAlign: "left"}}>{getPlaybackTimestamp(positionMs)}</Text>
-          <Text style={{flex: 1, textAlign: "right"}}>{getDurationTimestamp(durationMs)}</Text>
+          <Text style={{flex: 1, textAlign: "right"}}>{getDurationTimestamp(durationMsDisplay)}</Text>
         </View>
       </>
     );
