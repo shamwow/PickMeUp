@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { Audio, AVPlaybackStatus } from 'expo-av';
+import { Audio } from 'expo-av';
 import Slider from '@react-native-community/slider';
 
 type PlayerProps = {
   soundPath: string,
   // Observed weird behaviour where the duration of the sound was less than the duration of the recording.
   // So to keep things consistent, we pass in the duration of the recording to the player.
-  durationMs?: number,
+  durationMs?: number
 }
 
 type PlayerState = {
@@ -114,7 +114,31 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
       await sound.playAsync()
       this.setState({isPlaying: true})
     }
-  }
+  };
+
+  play = async () => {
+    const {sound, isPlaying} = this.state
+    if (sound === null) {
+      return
+    }
+
+    if (!this.state.isPlaying) {
+      await sound.playAsync()
+      this.setState({isPlaying: true})
+    }
+  };
+
+  pause = async () => {
+    const {sound, isPlaying} = this.state
+    if (sound === null) {
+      return
+    }
+
+    if (this.state.isPlaying) {
+      await sound.pauseAsync()
+      this.setState({isPlaying: false})
+    }
+  };
 
   render() {
     let {durationMs, positionMs} = this.state
