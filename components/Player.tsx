@@ -142,12 +142,12 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
 
     return (
       <>
-        <TouchableOpacity onPress={this.onSliderClick} style={{marginBottom: 10, marginTop: 10, flexDirection: 'row', marginEnd: 40, marginStart: 40}}>
+        <TouchableOpacity onPress={this.onSliderClick} style={{marginBottom: 10, marginTop: 10, flexDirection: 'row'}}>
         <Slider maxMs={durationMs} currMs={positionMs} />
         </TouchableOpacity>
-        <View style={{flexDirection: 'row', marginEnd: 40, marginStart: 40}}>
-          <Text style={{flex: 1, textAlign: "left"}}>{getPlaybackTimestamp(positionMs)}</Text>
-          <Text style={{flex: 1, textAlign: "right"}}>{getDurationTimestamp(durationMsDisplay)}</Text>
+        <View style={{flexDirection: 'row'}}>
+          <Text style={{flex: 1, textAlign: 'left', fontWeight: 'bold'}}>{getPlaybackTimestamp(positionMs)}</Text>
+          <Text style={{flex: 1, textAlign: 'right', fontWeight: 'bold'}}>{getDurationTimestamp(durationMsDisplay)}</Text>
         </View>
       </>
     );

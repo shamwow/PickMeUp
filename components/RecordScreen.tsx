@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { StyleSheet, TouchableOpacity, Text, View } from 'react-native';
 import { Audio } from 'expo-av';
 import { Recording, Sound } from 'expo-av/build/Audio';
 import Player from './Player';
 import * as SQLite from 'expo-sqlite';
 import Consts from '../consts';
 import { setStatusBarStyle } from 'expo-status-bar';
+import Button from './Button';
 
 const db = SQLite.openDatabase("db.db")
 
@@ -18,7 +19,7 @@ type RecordingScreenComponentState = {
 
 function RecordingDuration(props: {durationMs: number}) {
   const { durationMs } = props;
-  return <Text>{new Date(durationMs).toISOString().substr(11, 8)}</Text>;
+  return <Text style={{textAlign: 'center'}}>{new Date(durationMs).toISOString().substr(11, 8)}</Text>;
 }
 
 function SaveButton(props: {onSaveClick: () => void}) {
@@ -203,20 +204,22 @@ export class RecordScreen extends React.Component<{}, RecordingScreenComponentSt
     let discardButton = null
     let saveButton = null
     if (recording !== null && !isRecording) {
-      discardButton = <DiscardButton onPress={this.onDiscardClick} />
-      saveButton = <SaveButton onSaveClick={this.onSaveClick} />
+      discardButton = <Button style={{flex: 1, marginEnd: 20}} onPress={this.onDiscardClick} color="#6A758A" label="Discard" />
+      saveButton = <Button style={{flex: 1}} onPress={this.onSaveClick} color="#DE1819" label="Save" />
     }
 
     return (
-      <>
+      <View style={{paddingStart: 40, paddingEnd: 40, height: '100%', width: '100%', justifyContent: 'center', alignItems: 'center'}}>
         <TouchableOpacity onPress={this.onRecordClick} style={styles.container}>
           <Text>{text}</Text>
         </TouchableOpacity>
         {duration}
         {player}
-        {saveButton}
-        {discardButton}
-      </>
+        <View style={{flexDirection: 'row', marginTop: 40}}>
+          {discardButton}
+          {saveButton}
+        </View>
+      </View>
     );
   }
 }
