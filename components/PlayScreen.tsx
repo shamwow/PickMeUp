@@ -3,6 +3,7 @@ import {StyleSheet, Text, TouchableOpacity, View, Image} from "react-native";
 import * as SQLite from 'expo-sqlite';
 import Consts from "../consts";
 import Player from './Player';
+import { Button } from './Button';
 
 const db = SQLite.openDatabase("db.db");
 let lastId = 0;
@@ -84,11 +85,12 @@ export class PlayScreen extends React.Component<{}, PlayScreenComponentState> {
                 {
                     this.state.showHype &&
                     <>
-                        <TouchableOpacity onPress={this.onSunshineClicked()}>
+                        {/*<TouchableOpacity onPress={this.onSunshineClicked()}>*/}
                             {/*style={styles.listenButton}>*/}
-                            <Image source={require('../assets/sunshine_button.png')} />
-                            <Image source={require('../assets/sunshine_icon.png')} style={styles.absolutePosition}/>
-                        </TouchableOpacity>
+                            {/*<Image source={require('../assets/sunshine_button.png')} />*/}
+                            {/*<Image source={require('../assets/sunshine_icon.png')} style={styles.absolutePosition}/>*/}
+                        {/*</TouchableOpacity>*/}
+                        <Button/>
                         {/*<View style={styles.whiteShadow}>*/}
                         {/*</View>*/}
                     </>
@@ -97,7 +99,7 @@ export class PlayScreen extends React.Component<{}, PlayScreenComponentState> {
                     this.state.showDelete &&
                     <TouchableOpacity onPress={this.onDeleteThatShitClicked()}>
                         {/*style={styles.deleteButton}>*/}
-                        <Text style={styles.whiteText}>Delete</Text>
+                        {/*<Text style={styles.whiteText}>Delete</Text>*/}
                     </TouchableOpacity>
                 }
                 {player}
@@ -106,56 +108,56 @@ export class PlayScreen extends React.Component<{}, PlayScreenComponentState> {
     }
 }
 
-const styles = StyleSheet.create({
-    absolutePosition: {
-        top: 130,
-        left: 140,
-        position: 'absolute',
-    },
-    whiteShadow: {
-        borderRadius: 123,
-        backgroundColor: '#E5EAF0',
-        width: 245,
-        height: 245,
-        shadowColor: "#FFFFFF",
-        shadowOffset: {
-            width: -18,
-            height: -18,
-        },
-        shadowOpacity: 1,
-        shadowRadius: 30,
-        position: 'absolute'
-    },
-    listenButton: {
-        borderRadius: 123,
-        backgroundColor: '#E5EAF0',
-        textAlign: 'center',
-        color: 'white',
-        width: 245,
-        height: 245,
-        shadowColor: "#AFC1D8",
-        shadowOffset: {
-            width: 18,
-            height: 18,
-        },
-        shadowOpacity: 1,
-        shadowRadius: 30,
-        position: 'absolute',
-        zIndex: 1,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    whiteText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: 'white'
-    },
-    deleteButton: {
-        borderRadius: 24,
-        paddingVertical: 12,
-        paddingHorizontal: 48,
-        backgroundColor: '#DE1819',
-        textAlign: 'center',
-        color: 'white'
-    },
-});
+// const styles = StyleSheet.create({
+//     absolutePosition: {
+//         top: 130,
+//         left: 140,
+//         position: 'absolute',
+//     },
+//     whiteShadow: {
+//         borderRadius: 123,
+//         backgroundColor: '#E5EAF0',
+//         width: 245,
+//         height: 245,
+//         shadowColor: "#FFFFFF",
+//         shadowOffset: {
+//             width: -18,
+//             height: -18,
+//         },
+//         shadowOpacity: 1,
+//         shadowRadius: 30,
+//         position: 'absolute'
+//     },
+//     listenButton: {
+//         borderRadius: 123,
+//         backgroundColor: '#E5EAF0',
+//         textAlign: 'center',
+//         color: 'white',
+//         width: 245,
+//         height: 245,
+//         shadowColor: "#AFC1D8",
+//         shadowOffset: {
+//             width: 18,
+//             height: 18,
+//         },
+//         shadowOpacity: 1,
+//         shadowRadius: 30,
+//         position: 'absolute',
+//         zIndex: 1,
+//         justifyContent: 'center',
+//         alignItems: 'center'
+//     },
+//     whiteText: {
+//         fontSize: 14,
+//         fontWeight: 'bold',
+//         color: 'white'
+//     },
+//     deleteButton: {
+//         borderRadius: 24,
+//         paddingVertical: 12,
+//         paddingHorizontal: 48,
+//         backgroundColor: '#DE1819',
+//         textAlign: 'center',
+//         color: 'white'
+//     },
+// });
