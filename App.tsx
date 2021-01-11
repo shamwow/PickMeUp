@@ -60,7 +60,6 @@ export default function App() {
             paddingLeft: 60,
             paddingRight: 60,
             height: 100,
-
           },
         }}
       >

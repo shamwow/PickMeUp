@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { GestureResponderEvent, Text, TouchableOpacity, View } from 'react-native';
 import { Audio, AVPlaybackStatus } from 'expo-av';
-import Slider from '@react-native-community/slider';
+// import Slider from '@react-native-community/slider';
 
 type PlayerProps = {
   soundPath: string,
@@ -31,6 +31,23 @@ function getSliderPosition(durationMs: number, positionMs: number) {
     return 0
   }
   return positionMs / durationMs
+}
+
+function Slider(props: {maxMs: number, currMs: number}) {
+  const {currMs, maxMs} = props;
+
+  // This `|| 0` is important because `currMs / maxMs` can equal NaN.
+  let percentage = Math.round((currMs / maxMs || 0) * 10000) / 10000
+  // To prevent weird visual issue where progress bar never reaches end.
+  if (currMs > 0 && maxMs - currMs < 50) {
+    percentage = 1
+  }
+
+  return (
+    <View style={{flex: 1, flexDirection: 'row', backgroundColor: 'white', height: 5, borderRadius: 50}}>
+      <View style={{height: 8, flex: percentage, backgroundColor: '#DE1819', borderRadius: 50, marginTop: -1}}></View>
+    </View>
+  )
 }
 
 export default class Player extends React.Component<PlayerProps, PlayerState> {
@@ -125,8 +142,8 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
 
     return (
       <>
-        <TouchableOpacity onPress={this.onSliderClick} style={{height: 40, flexDirection: 'row', marginEnd: 40, marginStart: 40}}>
-          <Slider disabled={true} thumbImage={require('../assets/transparent_pixel.png')} style={{flex: 1, height: 40}} value={getSliderPosition(durationMs, positionMs)} />
+        <TouchableOpacity onPress={this.onSliderClick} style={{marginBottom: 10, marginTop: 10, flexDirection: 'row', marginEnd: 40, marginStart: 40}}>
+        <Slider maxMs={durationMs} currMs={positionMs} />
         </TouchableOpacity>
         <View style={{flexDirection: 'row', marginEnd: 40, marginStart: 40}}>
           <Text style={{flex: 1, textAlign: "left"}}>{getPlaybackTimestamp(positionMs)}</Text>
