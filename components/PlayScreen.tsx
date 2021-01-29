@@ -4,47 +4,17 @@ import { Audio } from 'expo-av';
 import * as SQLite from 'expo-sqlite';
 import Consts from "../consts";
 import {useFocusEffect} from "@react-navigation/native";
+import { BigButton } from "./BigButton"
+import Player from './Player';
 
 const db = SQLite.openDatabase("db.db");
 const soundObject = new Audio.Sound();
 let urls: [string, number][] = [];
 let lastId = 0;
 let lastFilePath = "";
+let lastSoundDuration : number | undefined = 0;
 
-function onPlayButtonGenClicked() {
-    return async () => {
-        if (urls.length == 0) {
-            console.log("NO FILE PATHS TO PLAY FROM");
-        }
 
-        const index = Math.floor(Math.random() * urls.length);
-        const tuple = urls[index];
-        lastFilePath = tuple[0];
-        const source = {
-            uri: lastFilePath
-        };
-        lastId = tuple[1];
-        try {
-            console.log("playing file!");
-            await soundObject.loadAsync(source);
-            await soundObject.playAsync();
-
-        } catch (error) {
-            console.log(error);
-        }
-    }
-}
-
-function onDeleteThatShitClicked() {
-    return async () => {
-        db.transaction(tx => {
-            tx.executeSql(
-                "DELETE FROM recordings WHERE id = " + lastId + ";"
-            );
-            updateUrlsInTransaction(tx);
-        });
-    }
-}
 
 function updateUrlsInTransaction(tx: SQLite.SQLTransaction) {
     urls = [];
@@ -60,17 +30,15 @@ function updateUrlsInTransaction(tx: SQLite.SQLTransaction) {
 }
 
 export function PlayScreen() {
-    const [showHype, setShowHype] = useState(true);
     const [showDelete, setShowDelete] = useState(false);
+    const [buttonPressed, setButtonPressed] = useState(false);
 
     soundObject.setOnPlaybackStatusUpdate(async (update) => {
         console.log("playback status updated!");
         console.log(update);
         if (update.isLoaded && update.didJustFinish) {
+            lastSoundDuration = update.durationMillis;
             await soundObject.unloadAsync();
-            setShowDelete(true);
-        } else {
-            setShowHype(!update.isLoaded);
         }
     });
 
@@ -86,21 +54,77 @@ export function PlayScreen() {
         });
     });
 
+    function onPlayButtonGenClicked() {
+        return async () => {
+            if (urls.length == 0) {
+                console.log("NO FILE PATHS TO PLAY FROM");
+                return
+            }
+
+            const index = Math.floor(Math.random() * urls.length);
+            const tuple = urls[index];
+            lastFilePath = tuple[0];
+            const source = {
+                uri: lastFilePath
+            };
+            lastId = tuple[1];
+            setShowDelete(true);
+            setButtonPressed(true);
+            try {
+                console.log("playing file!");
+                await soundObject.loadAsync(source);
+                await soundObject.playAsync();
+            } catch (error) {
+                console.log(error);
+            }
+        }
+    }
+
+    function pause() {
+        return async () => {
+            setButtonPressed(false);
+            setShowDelete(false);
+            await soundObject.pauseAsync();
+            await soundObject.unloadAsync();
+        }
+    }
+
+    function onDeleteThatShitClicked() {
+        return async () => {
+            await pause()();
+            // TODO: reset button somehow
+            db.transaction(tx => {
+                tx.executeSql(
+                    "DELETE FROM recordings WHERE id = " + lastId + ";"
+                );
+                updateUrlsInTransaction(tx);
+            });
+        }
+    }
+
+    let player = null;
+    if (buttonPressed) {
+        player = <Player soundPath={lastFilePath} durationMs={lastSoundDuration} />
+    }
+
     return (
         <>
             {
-                showHype &&
                 <>
-                    <TouchableOpacity onPress={onPlayButtonGenClicked()} style={styles.listenButton}>
-                        <Image
-                            style={styles.playButtonLogo}
-                            source={require('../assets/playButton.png')}
-                        />
-                    </TouchableOpacity>
-                    <View style={styles.whiteShadow}>
-                    </View>
+                    {/*<TouchableOpacity onPress={onPlayButtonGenClicked()} style={styles.listenButton}>*/}
+                        {/*<Image*/}
+                            {/*style={styles.playButtonLogo}*/}
+                            {/*source={require('../assets/playButton.png')}*/}
+                        {/*/>*/}
+                    {/*</TouchableOpacity>*/}
+                    {/*<View style={styles.whiteShadow}>*/}
+                    {/*</View>*/}
+                    <BigButton onPress={ onPlayButtonGenClicked() } onUnpress={ pause() }/>
                 </>
             }
+            <View style={{marginTop: 410, paddingStart: 40, paddingEnd: 40, width: '100%', justifyContent: 'center', alignItems: 'center'}}>
+                { player }
+            </View>
             {
                 showDelete &&
                 <TouchableOpacity onPress={onDeleteThatShitClicked()} style={styles.deleteButton}>
@@ -112,45 +136,13 @@ export function PlayScreen() {
 }
 
 const styles = StyleSheet.create({
-    whiteShadow: {
-        borderRadius: 123,
-        backgroundColor: '#E5EAF0',
-        width: 245,
-        height: 245,
-        shadowColor: "#FFFFFF",
-        shadowOffset: {
-            width: -18,
-            height: -18,
-        },
-        shadowOpacity: 1,
-        shadowRadius: 30,
-        position: 'absolute'
-    },
-    listenButton: {
-        borderRadius: 123,
-        backgroundColor: '#E5EAF0',
-        textAlign: 'center',
-        color: 'white',
-        width: 245,
-        height: 245,
-        shadowColor: "#AFC1D8",
-        shadowOffset: {
-            width: 18,
-            height: 18,
-        },
-        shadowOpacity: 1,
-        shadowRadius: 30,
-        position: 'absolute',
-        zIndex: 1,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
     whiteText: {
         fontSize: 14,
         fontWeight: 'bold',
         color: 'white'
     },
     deleteButton: {
+        marginTop: 0,
         borderRadius: 24,
         paddingVertical: 12,
         paddingHorizontal: 48,
@@ -161,5 +153,5 @@ const styles = StyleSheet.create({
     playButtonLogo: {
         width: 18,
         height: 24,
-    },
+    }
 });
