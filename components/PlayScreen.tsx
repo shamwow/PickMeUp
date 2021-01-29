@@ -12,6 +12,7 @@ const soundObject = new Audio.Sound();
 let urls: [string, number][] = [];
 let lastId = 0;
 let lastFilePath = "";
+let lastSoundDuration : number | undefined = 0;
 
 
 
@@ -30,11 +31,13 @@ function updateUrlsInTransaction(tx: SQLite.SQLTransaction) {
 
 export function PlayScreen() {
     const [showDelete, setShowDelete] = useState(false);
+    const [buttonPressed, setButtonPressed] = useState(false);
 
     soundObject.setOnPlaybackStatusUpdate(async (update) => {
         console.log("playback status updated!");
         console.log(update);
         if (update.isLoaded && update.didJustFinish) {
+            lastSoundDuration = update.durationMillis;
             await soundObject.unloadAsync();
         }
     });
@@ -55,6 +58,7 @@ export function PlayScreen() {
         return async () => {
             if (urls.length == 0) {
                 console.log("NO FILE PATHS TO PLAY FROM");
+                return
             }
 
             const index = Math.floor(Math.random() * urls.length);
@@ -65,6 +69,7 @@ export function PlayScreen() {
             };
             lastId = tuple[1];
             setShowDelete(true);
+            setButtonPressed(true);
             try {
                 console.log("playing file!");
                 await soundObject.loadAsync(source);
@@ -77,6 +82,7 @@ export function PlayScreen() {
 
     function pause() {
         return async () => {
+            setButtonPressed(false);
             setShowDelete(false);
             await soundObject.pauseAsync();
             await soundObject.unloadAsync();
@@ -85,7 +91,8 @@ export function PlayScreen() {
 
     function onDeleteThatShitClicked() {
         return async () => {
-            pause();
+            await pause()();
+            // TODO: reset button somehow
             db.transaction(tx => {
                 tx.executeSql(
                     "DELETE FROM recordings WHERE id = " + lastId + ";"
@@ -96,8 +103,8 @@ export function PlayScreen() {
     }
 
     let player = null;
-    if (true) {
-        player = <Player soundPath={lastFilePath} durationMs={0} />
+    if (buttonPressed) {
+        player = <Player soundPath={lastFilePath} durationMs={lastSoundDuration} />
     }
 
     return (
@@ -119,7 +126,7 @@ export function PlayScreen() {
                 { player }
             </View>
             {
-                // showDelete &&
+                showDelete &&
                 <TouchableOpacity onPress={onDeleteThatShitClicked()} style={styles.deleteButton}>
                     <Text style={styles.whiteText}>Delete</Text>
                 </TouchableOpacity>
