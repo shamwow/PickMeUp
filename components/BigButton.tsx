@@ -1,9 +1,11 @@
 import React from "react";
-import {Image, StyleSheet, TouchableOpacity, Text, TouchableWithoutFeedback} from "react-native";
+import {Image, StyleSheet, TouchableOpacity, Text, TouchableWithoutFeedback, View} from "react-native";
 
 type ButtonProps = {
     onPress: () => void
     onUnpress: () => void
+    pressedIcon: any
+    unpressedIcon: any
 }
 
 type ButtonState = {
@@ -14,12 +16,6 @@ export class BigButton extends React.Component<ButtonProps, ButtonState> {
     state: ButtonState = {
         isPressed: false,
     };
-
-    public reset() {
-        this.state = {
-            isPressed: false,
-        };
-    }
 
     touchableOnPress = () => {
         const newIsPressed = !this.state.isPressed
@@ -32,50 +28,40 @@ export class BigButton extends React.Component<ButtonProps, ButtonState> {
         }
     };
 
-    render = () => {
-        const image = this.state.isPressed ?
-            <Image
-                style={styles.notAbsolutePosition}
-                source={require('../assets/button_depressed.png')}
-            />
+    render() {
+        let icon = this.props.unpressedIcon
+        let bgImage = <Image style={styles.bgImage} source={require('../assets/sunshine_button.png')} />
+        if (this.state.isPressed) {
+            icon = this.props.pressedIcon
+            bgImage = <Image style={styles.bgImage} source={require('../assets/button_depressed.png')} />
 
-            :
-
-            <Image
-                style={styles.notAbsolutePosition}
-                source={require('../assets/sunshine_button.png')}
-            />;
+        }
 
         return (
-            <>
-                {/*<TouchableOpacity>*/}
-                <TouchableWithoutFeedback
-                    onPress={this.touchableOnPress}
-                    // onPressOut={this.touchablePressOut}
-                >
-                    {image}
-                </TouchableWithoutFeedback>
-                <Image style={styles.logo}
-                       source={require('../assets/sunshine_icon.png')}
-                />
-                {/*</TouchableOpacity>*/}
-            </>
+            <TouchableWithoutFeedback onPress={this.touchableOnPress}>
+                <View style={{
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    height: 341,
+                    width: 341,
+                    overflow: 'visible',
+                }}>
+                    {bgImage}
+                    {icon}
+                </View>
+            </TouchableWithoutFeedback>
         );
     }
 }
 
-
 const styles = StyleSheet.create({
-    notAbsolutePosition: {
+    bgImage: {
         borderWidth: 0,
         borderColor: 'red',
         position: 'absolute',
-        width: 341,
-        height: 341
+        top: 0,
     },
-    logo: {
-        position: 'absolute',
-        width: 60,
-        height: 60
+    icon: {
+
     }
 });

@@ -6,6 +6,7 @@ import Consts from "../consts";
 import {useFocusEffect} from "@react-navigation/native";
 import { BigButton } from "./BigButton"
 import Player from './Player';
+import {STYLES} from '../styles';
 
 const db = SQLite.openDatabase("db.db");
 const soundObject = new Audio.Sound();
@@ -107,21 +108,11 @@ export function PlayScreen() {
         player = <Player soundPath={lastFilePath} durationMs={lastSoundDuration} />
     }
 
+    const bigButtonIcon = <Image style={STYLES.bigButtonIcon} source={require('../assets/sunshine_icon.png')} />
+
     return (
         <>
-            {
-                <>
-                    {/*<TouchableOpacity onPress={onPlayButtonGenClicked()} style={styles.listenButton}>*/}
-                        {/*<Image*/}
-                            {/*style={styles.playButtonLogo}*/}
-                            {/*source={require('../assets/playButton.png')}*/}
-                        {/*/>*/}
-                    {/*</TouchableOpacity>*/}
-                    {/*<View style={styles.whiteShadow}>*/}
-                    {/*</View>*/}
-                    <BigButton onPress={ onPlayButtonGenClicked() } onUnpress={ pause() }/>
-                </>
-            }
+            <BigButton onPress={onPlayButtonGenClicked()} pressedIcon={bigButtonIcon} onUnpress={ pause() } unpressedIcon={bigButtonIcon} />
             <View style={{marginTop: 410, paddingStart: 40, paddingEnd: 40, width: '100%', justifyContent: 'center', alignItems: 'center'}}>
                 { player }
             </View>
@@ -150,8 +141,5 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         color: 'white'
     },
-    playButtonLogo: {
-        width: 18,
-        height: 24,
-    }
+
 });

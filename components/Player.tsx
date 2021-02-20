@@ -18,23 +18,12 @@ type PlayerState = {
   isPlaying: boolean,
 }
 
-function getPlaybackTimestamp(positionMs: number) {
-  return new Date(positionMs).toISOString().substr(14, 5)
+function getMsTimestamp(ms: number) {
+  return new Date(ms).toISOString().substr(14, 5)
 }
 
-function getDurationTimestamp(durationMs: number) {
-  return new Date(durationMs).toISOString().substr(14, 5)
-}
-
-function getSliderPosition(durationMs: number, positionMs: number) {
-  if (durationMs === 0) {
-    return 0
-  }
-  return positionMs / durationMs
-}
-
-function Slider(props: {maxMs: number, currMs: number}) {
-  const {currMs, maxMs} = props;
+export function Slider(props: {onTap?: () => {}, maxMs: number, currMs: number}) {
+  const {currMs, maxMs, onTap} = props;
 
   // This `|| 0` is important because `currMs / maxMs` can equal NaN.
   let percentage = Math.round((currMs / maxMs || 0) * 10000) / 10000
@@ -43,10 +32,29 @@ function Slider(props: {maxMs: number, currMs: number}) {
     percentage = 1
   }
 
-  return (
-    <View style={{flex: 1, flexDirection: 'row', backgroundColor: 'white', height: 5, borderRadius: 50}}>
-      <View style={{height: 8, flex: percentage, backgroundColor: '#DE1819', borderRadius: 50, marginTop: -1}}></View>
+  let slider = (
+    <TouchableOpacity onPress={onTap} style={styles.slider}>
+      <View style={{flex: 1, flexDirection: 'row', backgroundColor: 'white', height: 5, borderRadius: 50}}>
+        <View style={{height: 8, flex: percentage, backgroundColor: '#DE1819', borderRadius: 50, marginTop: -1}}></View>
+      </View>
+    </TouchableOpacity>
+  )
+  if (!slider) {
+    <View style={styles.slider}>
+      <View style={{flex: 1, flexDirection: 'row', backgroundColor: 'white', height: 5, borderRadius: 50}}>
+        <View style={{height: 8, flex: percentage, backgroundColor: '#DE1819', borderRadius: 50, marginTop: -1}}></View>
+      </View>
     </View>
+  }
+
+  return (
+    <>
+      {slider}
+      <View style={{flexDirection: 'row'}}>
+        <Text style={{flex: 1, textAlign: 'left', fontWeight: 'bold'}}>{getMsTimestamp(currMs)}</Text>
+        <Text style={{flex: 1, textAlign: 'right', fontWeight: 'bold'}}>{getMsTimestamp(maxMs)}</Text>
+      </View>
+    </>
   )
 }
 
@@ -141,15 +149,11 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
     }
 
     return (
-      <>
-        <TouchableOpacity onPress={this.onSliderClick} style={{marginBottom: 10, marginTop: 10, flexDirection: 'row'}}>
-        <Slider maxMs={durationMs} currMs={positionMs} />
-        </TouchableOpacity>
-        <View style={{flexDirection: 'row'}}>
-          <Text style={{flex: 1, textAlign: 'left', fontWeight: 'bold'}}>{getPlaybackTimestamp(positionMs)}</Text>
-          <Text style={{flex: 1, textAlign: 'right', fontWeight: 'bold'}}>{getDurationTimestamp(durationMsDisplay)}</Text>
-        </View>
-      </>
+      <Slider maxMs={durationMsDisplay} currMs={positionMs} onTap={this.onSliderClick} />
     );
   }
+}
+
+const styles = {
+  slider: {marginBottom: 10, marginTop: 10, flexDirection: 'row'},
 }

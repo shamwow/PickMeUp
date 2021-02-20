@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, TouchableOpacity, Text, View } from 'react-native';
+import { LayoutAnimation, StyleSheet, TouchableOpacity, Text, View } from 'react-native';
 import { Audio } from 'expo-av';
 import { Recording, Sound } from 'expo-av/build/Audio';
-import Player from './Player';
+import Player, { Slider } from './Player';
 import * as SQLite from 'expo-sqlite';
 import Consts from '../consts';
 import { setStatusBarStyle } from 'expo-status-bar';
 import Button from './Button';
+import { BigButton } from './BigButton';
+import { MIC_RED, SQUARE_RED, MIC_GREY, SUN_YELLOW } from '../icons';
+import { SvgXml } from "react-native-svg";
+import { STYLES, COLORS } from '../styles';
+import Popup from './Popup';
+
+// 1 minute.
+const MAX_DURATION_MS = 1000*60
 
 const db = SQLite.openDatabase("db.db")
 
@@ -15,48 +23,27 @@ type RecordingScreenComponentState = {
   recording: Audio.Recording | null,
   durationMs: number,
   isRecording: boolean,
-}
-
-function RecordingDuration(props: {durationMs: number}) {
-  const { durationMs } = props;
-  return <Text style={{textAlign: 'center'}}>{new Date(durationMs).toISOString().substr(11, 8)}</Text>;
-}
-
-function SaveButton(props: {onSaveClick: () => void}) {
-  const { onSaveClick } = props;
-
-  return (
-    <TouchableOpacity onPress={onSaveClick}>
-      <Text>Save</Text>
-    </TouchableOpacity>
-  );
-}
-
-function DiscardButton(props: {onPress: () => void}) {
-  const { onPress } = props;
-  return (
-    <TouchableOpacity onPress={onPress}>
-      <Text>Discard</Text>
-    </TouchableOpacity>
-  );
+  showSavedPrompt: boolean,
 }
 
 export class RecordScreen extends React.Component<{}, RecordingScreenComponentState> {
   state: RecordingScreenComponentState = {
-    recordingIntervalID:null,
+    recordingIntervalID: null,
     recording: null,
     durationMs: 0,
     isRecording: false,
+    showSavedPrompt: false,
   }
 
   constructor(props: {}) {
     super(props)
 
     this.state = {
-      recordingIntervalID:null,
+      recordingIntervalID: null,
       recording: null,
       durationMs: 0,
       isRecording: false,
+      showSavedPrompt: false,
     }
   }
 
@@ -176,16 +163,20 @@ export class RecordScreen extends React.Component<{}, RecordingScreenComponentSt
     console.log(path)
 
     await this.clearState()
+    this.setState({showSavedPrompt: true})
+  }
+
+  onSavedDialogClick = () => {
+    this.setState({showSavedPrompt: false})
   }
 
   render() {
     const {durationMs, isRecording, recording} = this.state;
 
-    let text = "Stop Recording"
-    if (recording === null) {
-      text = "Record Something!"
-    } else if (!isRecording) {
-      text = "Resume Recording"
+    const pressedIcon = <SvgXml style={STYLES.bigButtonIcon} width="50" height="50" xml={SQUARE_RED} />;
+    let unpressedIcon = <SvgXml style={STYLES.bigButtonIcon} width="50" height="50" xml={MIC_RED} />;
+    if (recording !== null && !isRecording) {
+      unpressedIcon = <SvgXml style={STYLES.bigButtonIcon} width="50" height="50" xml={MIC_GREY} />;
     }
 
     let player = null;
@@ -197,8 +188,8 @@ export class RecordScreen extends React.Component<{}, RecordingScreenComponentSt
     }
 
     let duration = null;
-    if (recording !== null) {
-      duration = <RecordingDuration durationMs={durationMs} />
+    if (recording !== null && isRecording) {
+      duration = <Slider maxMs={MAX_DURATION_MS} currMs={durationMs} />
     }
 
     let discardButton = null
@@ -208,16 +199,30 @@ export class RecordScreen extends React.Component<{}, RecordingScreenComponentSt
       saveButton = <Button style={{flex: 1}} onPress={this.onSaveClick} color="#DE1819" label="Save" />
     }
 
+    let bigButton = null
+    const sunshineIcon = <SvgXml style={STYLES.bigButtonIcon} width="60" height="60" xml={SUN_YELLOW} />;
+    const popup = <Popup isVisible={this.state.showSavedPrompt} title="Recording Saved!" message="Come back to this ray of sunshine on a rainier day!" onConfirm={this.onSavedDialogClick} icon={sunshineIcon} />
+    if (!this.state.showSavedPrompt) {
+      bigButton = <BigButton onPress={this.onRecordClick} onUnpress={this.onRecordClick} unpressedIcon={unpressedIcon} pressedIcon={pressedIcon} />
+    }
+
     return (
-      <View style={{paddingStart: 40, paddingEnd: 40, height: '100%', width: '100%', justifyContent: 'center', alignItems: 'center'}}>
-        <TouchableOpacity onPress={this.onRecordClick} style={styles.container}>
-          <Text>{text}</Text>
-        </TouchableOpacity>
-        {duration}
-        {player}
-        <View style={{flexDirection: 'row', marginTop: 40}}>
-          {discardButton}
-          {saveButton}
+      <View style={{flex: 1, marginTop: 100, paddingStart: 40, paddingEnd: 40, justifyContent: 'space-between', alignItems: 'center'}}>
+        <View style={{}}>
+            <Text style={{...STYLES.text, color: COLORS.red, fontSize: 14, marginBottom: 50}}>Sunshine</Text>
+            <Text style={{...STYLES.text, color: COLORS.black, fontSize: 24, textTransform: 'none'}}>Record a daily win</Text>
+        </View>
+        <View style={{height: 350}}>
+          {popup}
+          {bigButton}
+        </View>
+        <View style={{marginBottom: 50, height: 150, justifyContent: 'center', alignItems: 'center'}}>
+          {duration}
+          {player}
+          <View style={{flexDirection: 'row', marginTop: 40}}>
+            {discardButton}
+            {saveButton}
+          </View>
         </View>
       </View>
     );
