@@ -6,124 +6,119 @@ import Consts from "../consts";
 import {useFocusEffect} from "@react-navigation/native";
 import { BigButton } from "./BigButton"
 import Player from './Player';
-import {STYLES} from '../styles';
+import Button from './Button';
+import {STYLES, COLORS} from '../styles';
+import DB from '../classes/DB';
+import * as FileSystem from 'expo-file-system';
 
-const db = SQLite.openDatabase("db.db");
-const soundObject = new Audio.Sound();
-let urls: [string, number][] = [];
-let lastId = 0;
-let lastFilePath = "";
-let lastSoundDuration : number | undefined = 0;
-
-
-
-function updateUrlsInTransaction(tx: SQLite.SQLTransaction) {
-    urls = [];
-    tx.executeSql(
-        "SELECT * FROM recordings;", [], (_, resultSet) => {
-            for (let i = 0; i < resultSet.rows.length; i++) {
-                const item = resultSet.rows.item(i);
-                console.log(item);
-                urls.push([item.path, item.id]);
-            }
-        }
-    );
+type FileInfo = {
+    id: number,
+    path: string,
 }
 
-export function PlayScreen() {
-    const [showDelete, setShowDelete] = useState(false);
-    const [buttonPressed, setButtonPressed] = useState(false);
+type PlayScreenState = {
+    currentFile: FileInfo | null
+}
 
-    soundObject.setOnPlaybackStatusUpdate(async (update) => {
-        console.log("playback status updated!");
-        console.log(update);
-        if (update.isLoaded && update.didJustFinish) {
-            lastSoundDuration = update.durationMillis;
-            await soundObject.unloadAsync();
-        }
-    });
-
-    useEffect(() => {
-        db.transaction(tx => {
-            tx.executeSql(Consts.CREATE_TABLE_SQL);
-        });
-    });
-
-    useFocusEffect(() => {
-        db.transaction(tx => {
-            updateUrlsInTransaction(tx);
-        });
-    });
-
-    function onPlayButtonGenClicked() {
-        return async () => {
-            if (urls.length == 0) {
-                console.log("NO FILE PATHS TO PLAY FROM");
-                return
-            }
-
-            const index = Math.floor(Math.random() * urls.length);
-            const tuple = urls[index];
-            lastFilePath = tuple[0];
-            const source = {
-                uri: lastFilePath
-            };
-            lastId = tuple[1];
-            setShowDelete(true);
-            setButtonPressed(true);
-            try {
-                console.log("playing file!");
-                await soundObject.loadAsync(source);
-                await soundObject.playAsync();
-            } catch (error) {
-                console.log(error);
-            }
-        }
+export class PlayScreen extends React.Component<{}, PlayScreenState> {
+    constructor(props: {}) {
+        super(props)
+        this.state = {currentFile: null}
     }
 
-    function pause() {
-        return async () => {
-            setButtonPressed(false);
-            setShowDelete(false);
-            await soundObject.pauseAsync();
-            await soundObject.unloadAsync();
-        }
+    async componentDidMount() {
+        await DB.Tx(async tx => {
+            await DB.SQL(tx, Consts.CREATE_TABLE_SQL)
+        })
+        await DB.Tx(async tx => {
+            const data = await DB.SQL(tx, "SELECT * FROM recordings LIMIT 1")
+            console.log("DATA!", data)
+        })
     }
 
-    function onDeleteThatShitClicked() {
-        return async () => {
-            await pause()();
-            // TODO: reset button somehow
-            db.transaction(tx => {
-                tx.executeSql(
-                    "DELETE FROM recordings WHERE id = " + lastId + ";"
-                );
-                updateUrlsInTransaction(tx);
+    onDeleteThatShitClicked = async () => {
+        const {currentFile} = this.state
+        if (!currentFile) {
+            return
+        }
+
+        await DB.Tx(async tx => {
+            await DB.SQL(tx, "DELETE FROM recordings WHERE id = ?", [currentFile.id])
+        });
+
+        await FileSystem.deleteAsync(currentFile.path, {idempotent: true})
+
+        this.setState({currentFile: null})
+    }
+
+    loadNewRecording = async () => {
+        try {
+            await DB.Tx(async tx => {
+                const res = await DB.SQL(
+                    tx,
+                    "SELECT id, path, date FROM recordings ORDER BY RANDOM() LIMIT 1",
+                )
+                if (res.rows.length === 0) {
+                    console.warn("No recordings!")
+                    return
+                }
+
+                console.log(res.rows)
+
+                const recording = res.rows.item(0)
+                this.setState({
+                    currentFile: {
+                        id: recording.id,
+                        path: recording.path,
+                    },
+                })
             });
         }
+        catch (err) {
+            console.warn(err)
+        }
     }
 
-    let player = null;
-    if (buttonPressed) {
-        player = <Player soundPath={lastFilePath} durationMs={lastSoundDuration} />
+    clearRecording = async () => {
+        this.setState({currentFile: null})
     }
 
-    const bigButtonIcon = <Image style={STYLES.bigButtonIcon} source={require('../assets/sunshine_icon.png')} />
+    render() {
+        const {currentFile} = this.state
 
-    return (
-        <>
-            {/* <BigButton onPress={onPlayButtonGenClicked()} pressedIcon={bigButtonIcon} onUnpress={ pause() } unpressedIcon={bigButtonIcon} /> */}
-            <View style={{marginTop: 410, paddingStart: 40, paddingEnd: 40, width: '100%', justifyContent: 'center', alignItems: 'center'}}>
-                { player }
+        const bigButtonIcon = <Image style={STYLES.bigButtonIcon} source={require('../assets/sunshine_icon.png')} />
+
+        let player = null;
+        if (currentFile !== null) {
+            player = <Player soundPath={currentFile.path} />
+        }
+
+        let deleteButton = null;
+        if (currentFile !== null) {
+            deleteButton = <Button style={styles.deleteButton} onPress={this.onDeleteThatShitClicked} color="#DE1819" label="Delete" />
+        }
+
+        let onBigButtonClicked = this.loadNewRecording
+        if (currentFile !== null) {
+            onBigButtonClicked = this.clearRecording
+        }
+
+        return (
+            <View style={STYLES.mainView}>
+                <View>
+                    <Text style={{...STYLES.text, color: COLORS.red, fontSize: 14, marginBottom: 50}}>Sunshine</Text>
+                    <Text style={{...STYLES.text, color: COLORS.black, fontSize: 24, textTransform: 'none'}}>Want some sunshine today?</Text>
+                </View>
+                <View style={{height: 350}}>
+                    <BigButton onTap={onBigButtonClicked} icon={bigButtonIcon} isPressed={currentFile !== null} />
+                </View>
+                <View style={{marginBottom: 50, height: 150, justifyContent: 'center', alignItems: 'center'}}>
+                    <View style={{flexDirection: 'row'}}>{ player }</View>
+                    <View style={{marginTop: 40}}>{deleteButton}</View>
+                </View>
             </View>
-            {
-                showDelete &&
-                <TouchableOpacity onPress={onDeleteThatShitClicked()} style={styles.deleteButton}>
-                    <Text style={styles.whiteText}>Delete</Text>
-                </TouchableOpacity>
-            }
-        </>
-    );
+        );
+    }
 }
 
 const styles = StyleSheet.create({
@@ -133,13 +128,8 @@ const styles = StyleSheet.create({
         color: 'white'
     },
     deleteButton: {
-        marginTop: 0,
-        borderRadius: 24,
-        paddingVertical: 12,
-        paddingHorizontal: 48,
-        backgroundColor: '#DE1819',
-        textAlign: 'center',
-        color: 'white'
-    },
+        backgroundColor: COLORS.grey,
+        width: 200,
 
+    },
 });

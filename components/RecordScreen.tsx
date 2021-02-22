@@ -12,11 +12,11 @@ import { MIC_RED, SQUARE_RED, MIC_GREY, SUN_YELLOW } from '../icons';
 import { SvgXml } from "react-native-svg";
 import { STYLES, COLORS } from '../styles';
 import Popup from './Popup';
+import DB from '../classes/DB'
+import * as FileSystem from 'expo-file-system';
 
 // 1 minute.
 const MAX_DURATION_MS = 1000*60
-
-const db = SQLite.openDatabase("db.db")
 
 type RecordingScreenComponentState = {
   recordingIntervalID: number | null,
@@ -54,7 +54,12 @@ export class RecordScreen extends React.Component<{}, RecordingScreenComponentSt
       clearInterval(recordingIntervalID)
     }
     if (recording !== null) {
+      // TODO: need to clean up dangling file objects.
+      // const uri = recording.getURI()
       await recording.stopAndUnloadAsync()
+      // if (uri) {
+      //   await FileSystem.deleteAsync(uri, {idempotent: true})
+      // }
     }
 
     this.setState({
@@ -65,18 +70,8 @@ export class RecordScreen extends React.Component<{}, RecordingScreenComponentSt
     })
   }
 
-  componentDidMount() {
-    db.transaction(tx => {
-      tx.executeSql(Consts.CREATE_TABLE_SQL);
-    });
-  }
-
   componentWillUnmount = () => {
-    const {recordingIntervalID} = this.state;
-
-    if (recordingIntervalID !== null) {
-      clearInterval(recordingIntervalID)
-    }
+    this.clearState()
   }
 
   setRecordingStatusInterval = () => {
@@ -148,17 +143,19 @@ export class RecordScreen extends React.Component<{}, RecordingScreenComponentSt
 
     const path = recording.getURI();
 
-    db.transaction(tx => {
-      tx.executeSql(
-        "INSERT INTO recordings (path, date) VALUES (?, ?)",
-        [path, new Date()],
-        () => {},
-        (_, err) => {
-          console.warn(err);
-          return false
-        },
-      );
-    });
+    try {
+      await DB.Tx(async tx => {
+        await DB.SQL(
+          tx,
+          "INSERT INTO recordings (path, date) VALUES (?, ?)",
+          [path, new Date()],
+        );
+      });
+    }
+    catch (err) {
+      console.warn(err);
+    }
+
 
     console.log(path)
 
@@ -217,7 +214,7 @@ export class RecordScreen extends React.Component<{}, RecordingScreenComponentSt
     }
 
     return (
-      <View style={{flex: 1, marginTop: 100, paddingStart: 40, paddingEnd: 40, justifyContent: 'space-between', alignItems: 'center'}}>
+      <View style={STYLES.mainView}>
         <View>
             <Text style={{...STYLES.text, color: COLORS.red, fontSize: 14, marginBottom: 50}}>Sunshine</Text>
             <Text style={{...STYLES.text, color: COLORS.black, fontSize: 24, textTransform: 'none'}}>Record a daily win</Text>
@@ -226,7 +223,7 @@ export class RecordScreen extends React.Component<{}, RecordingScreenComponentSt
           {popup}
           {bigButton}
         </View>
-        <View style={{marginBottom: 50, height: 150, justifyContent: 'center', alignItems: 'center'}}>
+        <View style={{ backgroundColor: 'red', marginBottom: 50, height: 150, justifyContent: 'center', alignItems: 'center'}}>
           <View style={{flexDirection: 'row'}}>
             {duration}
             {player}

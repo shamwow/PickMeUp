@@ -4,6 +4,7 @@ export const STYLES = {
         width: 60,
         height: 60
     },
+    mainView: {flex: 1, marginTop: 100, paddingStart: 40, paddingEnd: 40, justifyContent: 'space-between', alignItems: 'center'},
 }
 
 export const COLORS = {
