@@ -105,16 +105,18 @@ export class PlayScreen extends React.Component<{}, PlayScreenState> {
 
         return (
             <View style={STYLES.mainView}>
-                <View>
+                <View style={STYLES.headerSection}>
                     <Text style={{...STYLES.text, color: COLORS.red, fontSize: 14, marginBottom: 50}}>Sunshine</Text>
-                    <Text style={{...STYLES.text, color: COLORS.black, fontSize: 24, textTransform: 'none'}}>Want some sunshine today?</Text>
+                    <Text style={{...STYLES.text, color: COLORS.black, fontSize: 24, textTransform: 'none'}}>Need some sunshine today?</Text>
                 </View>
-                <View style={{height: 350}}>
+                <View style={STYLES.bigButtonSection}>
                     <BigButton onTap={onBigButtonClicked} icon={bigButtonIcon} isPressed={currentFile !== null} />
                 </View>
-                <View style={{marginBottom: 50, height: 150, justifyContent: 'center', alignItems: 'center'}}>
-                    <View style={{flexDirection: 'row'}}>{ player }</View>
-                    <View style={{marginTop: 40}}>{deleteButton}</View>
+                <View style={STYLES.playerSection}>
+                    { player }
+                </View>
+                <View style={STYLES.buttonSection}>
+                    {deleteButton}
                 </View>
             </View>
         );
@@ -128,8 +130,8 @@ const styles = StyleSheet.create({
         color: 'white'
     },
     deleteButton: {
+        ...STYLES.button,
         backgroundColor: COLORS.grey,
         width: 200,
-
     },
 });

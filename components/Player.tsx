@@ -150,7 +150,7 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
     }
 
     let middleIcon = <SvgXml width="10" height="10" xml={PAUSE_GREY} />
-    if (isPlaying) {
+    if (!isPlaying) {
       middleIcon = <SvgXml width="10" height="10" xml={PLAY_GREY} />
     }
 
@@ -162,5 +162,5 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
 
 const styles = {
   slider: {marginBottom: 10, marginTop: 10, flexDirection: 'row'},
-  middleIcon: {height: 10, width: 10, flex: 1, justifyContent: 'center', alignItems: 'center'}
+  middleIcon: {marginTop: 3, height: 10, width: 10, flex: 1, justifyContent: 'center', alignItems: 'center'}
 }

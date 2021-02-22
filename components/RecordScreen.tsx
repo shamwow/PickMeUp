@@ -202,8 +202,8 @@ export class RecordScreen extends React.Component<{}, RecordingScreenComponentSt
     let discardButton = null
     let saveButton = null
     if (isDoneRecording) {
-      discardButton = <Button style={{flex: 1, marginEnd: 20}} onPress={this.onDiscardClick} color="#6A758A" label="Discard" />
-      saveButton = <Button style={{flex: 1}} onPress={this.onSaveClick} color="#DE1819" label="Save" />
+      discardButton = <Button style={{...STYLES.button, flex: 1, marginEnd: 20}} onPress={this.onDiscardClick} color="#6A758A" label="Discard" />
+      saveButton = <Button style={{...STYLES.button, flex: 1}} onPress={this.onSaveClick} color="#DE1819" label="Save" />
     }
 
     let bigButton = null
@@ -215,23 +215,21 @@ export class RecordScreen extends React.Component<{}, RecordingScreenComponentSt
 
     return (
       <View style={STYLES.mainView}>
-        <View>
+        <View style={STYLES.headerSection}>
             <Text style={{...STYLES.text, color: COLORS.red, fontSize: 14, marginBottom: 50}}>Sunshine</Text>
             <Text style={{...STYLES.text, color: COLORS.black, fontSize: 24, textTransform: 'none'}}>Record a daily win</Text>
         </View>
-        <View style={{height: 350}}>
+        <View style={STYLES.bigButtonSection}>
           {popup}
           {bigButton}
         </View>
-        <View style={{ backgroundColor: 'red', marginBottom: 50, height: 150, justifyContent: 'center', alignItems: 'center'}}>
-          <View style={{flexDirection: 'row'}}>
-            {duration}
-            {player}
-          </View>
-          <View style={{flexDirection: 'row', marginTop: 40}}>
-            {discardButton}
-            {saveButton}
-          </View>
+        <View style={STYLES.playerSection}>
+          {duration}
+          {player}
+        </View>
+        <View style={STYLES.buttonSection}>
+          {discardButton}
+          {saveButton}
         </View>
       </View>
     );
