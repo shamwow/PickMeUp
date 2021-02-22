@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { GestureResponderEvent, Text, TouchableOpacity, View } from 'react-native';
-import { Audio, AVPlaybackStatus } from 'expo-av';
-// import Slider from '@react-native-community/slider';
+import React from 'react';
+import { Text, TouchableOpacity, View } from 'react-native';
+import { Audio } from 'expo-av';
+import {PLAY_GREY, PAUSE_GREY} from '../icons'
+import { SvgXml } from "react-native-svg";
+
 
 type PlayerProps = {
   soundPath: string,
@@ -22,14 +24,19 @@ function getMsTimestamp(ms: number) {
   return new Date(ms).toISOString().substr(14, 5)
 }
 
-export function Slider(props: {onTap?: () => {}, maxMs: number, currMs: number}) {
-  const {currMs, maxMs, onTap} = props;
+export function Slider(props: {middleIcon?: React.Component, onTap?: () => {}, maxMs: number, currMs: number}) {
+  const {currMs, maxMs, onTap, middleIcon} = props;
 
   // This `|| 0` is important because `currMs / maxMs` can equal NaN.
   let percentage = Math.round((currMs / maxMs || 0) * 10000) / 10000
   // To prevent weird visual issue where progress bar never reaches end.
   if (currMs > 0 && maxMs - currMs < 50) {
     percentage = 1
+  }
+
+  let middleIconElem;
+  if (middleIcon) {
+    middleIconElem = <View style={styles.middleIcon}>{middleIcon}</View>
   }
 
   let slider = (
@@ -41,6 +48,7 @@ export function Slider(props: {onTap?: () => {}, maxMs: number, currMs: number})
       </View>
       <View style={{flexDirection: 'row'}}>
         <Text style={{flex: 1, textAlign: 'left', fontWeight: 'bold'}}>{getMsTimestamp(currMs)}</Text>
+        {middleIconElem}
         <Text style={{flex: 1, textAlign: 'right', fontWeight: 'bold'}}>{getMsTimestamp(maxMs)}</Text>
       </View>
     </>
@@ -135,18 +143,24 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
   }
 
   render() {
-    const {durationMs, positionMs} = this.state
+    const {durationMs, positionMs, isPlaying} = this.state
     let durationMsDisplay = durationMs
     if (this.props.durationMs) {
       durationMsDisplay = this.props.durationMs
     }
 
+    let middleIcon = <SvgXml width="10" height="10" xml={PAUSE_GREY} />
+    if (isPlaying) {
+      middleIcon = <SvgXml width="10" height="10" xml={PLAY_GREY} />
+    }
+
     return (
-      <Slider maxMs={durationMsDisplay} currMs={positionMs} onTap={this.onSliderClick} />
+      <Slider middleIcon={middleIcon} maxMs={durationMsDisplay} currMs={positionMs} onTap={this.onSliderClick} />
     );
   }
 }
 
 const styles = {
   slider: {marginBottom: 10, marginTop: 10, flexDirection: 'row'},
+  middleIcon: {height: 10, width: 10, flex: 1, justifyContent: 'center', alignItems: 'center'}
 }
