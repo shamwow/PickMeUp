@@ -172,16 +172,26 @@ export class RecordScreen extends React.Component<{}, RecordingScreenComponentSt
 
   render() {
     const {durationMs, isRecording, recording} = this.state;
+    const thereIsNoRecording = recording === null
+    const isDoneRecording = recording !== null && !isRecording
 
-    const pressedIcon = <SvgXml style={STYLES.bigButtonIcon} width="50" height="50" xml={SQUARE_RED} />;
-    let unpressedIcon = <SvgXml style={STYLES.bigButtonIcon} width="50" height="50" xml={MIC_RED} />;
-    if (recording !== null && !isRecording) {
-      unpressedIcon = <SvgXml style={STYLES.bigButtonIcon} width="50" height="50" xml={MIC_GREY} />;
+    let bigButtonIcon;
+    let isBigButtonPressed
+    if (thereIsNoRecording) {
+      bigButtonIcon = <SvgXml style={STYLES.bigButtonIcon} width="50" height="50" xml={MIC_RED} />;
+      isBigButtonPressed = false
+    } else if (isRecording) {
+      bigButtonIcon = <SvgXml style={STYLES.bigButtonIcon} width="50" height="50" xml={SQUARE_RED} />;
+      isBigButtonPressed = true
+    } else {
+      bigButtonIcon = <SvgXml style={STYLES.bigButtonIcon} width="50" height="50" xml={MIC_GREY} />;
+      isBigButtonPressed = false
     }
 
     let player = null;
-    if (recording !== null && !isRecording) {
-      const uri = recording.getURI()
+    if (isDoneRecording) {
+      // Need to do this check because the type checker is dumb.
+      const uri = recording !== null ? recording.getURI() : ""
       if (uri !== null) {
         player = <Player soundPath={uri} durationMs={durationMs} />
       }
@@ -194,7 +204,7 @@ export class RecordScreen extends React.Component<{}, RecordingScreenComponentSt
 
     let discardButton = null
     let saveButton = null
-    if (recording !== null && !isRecording) {
+    if (isDoneRecording) {
       discardButton = <Button style={{flex: 1, marginEnd: 20}} onPress={this.onDiscardClick} color="#6A758A" label="Discard" />
       saveButton = <Button style={{flex: 1}} onPress={this.onSaveClick} color="#DE1819" label="Save" />
     }
@@ -203,12 +213,12 @@ export class RecordScreen extends React.Component<{}, RecordingScreenComponentSt
     const sunshineIcon = <SvgXml style={STYLES.bigButtonIcon} width="60" height="60" xml={SUN_YELLOW} />;
     const popup = <Popup isVisible={this.state.showSavedPrompt} title="Recording Saved!" message="Come back to this ray of sunshine on a rainier day!" onConfirm={this.onSavedDialogClick} icon={sunshineIcon} />
     if (!this.state.showSavedPrompt) {
-      bigButton = <BigButton onPress={this.onRecordClick} onUnpress={this.onRecordClick} unpressedIcon={unpressedIcon} pressedIcon={pressedIcon} />
+      bigButton = <BigButton onTap={this.onRecordClick} icon={bigButtonIcon} isPressed={isBigButtonPressed} />
     }
 
     return (
       <View style={{flex: 1, marginTop: 100, paddingStart: 40, paddingEnd: 40, justifyContent: 'space-between', alignItems: 'center'}}>
-        <View style={{}}>
+        <View>
             <Text style={{...STYLES.text, color: COLORS.red, fontSize: 14, marginBottom: 50}}>Sunshine</Text>
             <Text style={{...STYLES.text, color: COLORS.black, fontSize: 24, textTransform: 'none'}}>Record a daily win</Text>
         </View>
@@ -217,8 +227,10 @@ export class RecordScreen extends React.Component<{}, RecordingScreenComponentSt
           {bigButton}
         </View>
         <View style={{marginBottom: 50, height: 150, justifyContent: 'center', alignItems: 'center'}}>
-          {duration}
-          {player}
+          <View style={{flexDirection: 'row'}}>
+            {duration}
+            {player}
+          </View>
           <View style={{flexDirection: 'row', marginTop: 40}}>
             {discardButton}
             {saveButton}

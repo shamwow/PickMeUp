@@ -2,43 +2,20 @@ import React from "react";
 import {Image, StyleSheet, TouchableOpacity, Text, TouchableWithoutFeedback, View} from "react-native";
 
 type ButtonProps = {
-    onPress: () => void
-    onUnpress: () => void
-    pressedIcon: any
-    unpressedIcon: any
-}
-
-type ButtonState = {
+    onTap: () => void
+    icon: any
     isPressed: boolean
 }
 
-export class BigButton extends React.Component<ButtonProps, ButtonState> {
-    state: ButtonState = {
-        isPressed: false,
-    };
-
-    touchableOnPress = () => {
-        const newIsPressed = !this.state.isPressed
-        console.log("touchable pressed to: " + newIsPressed);
-        this.setState({isPressed: newIsPressed});
-        if (newIsPressed) {
-            this.props.onPress();
-        } else {
-            this.props.onUnpress();
-        }
-    };
-
+export class BigButton extends React.Component<ButtonProps, {}> {
     render() {
-        let icon = this.props.unpressedIcon
         let bgImage = <Image style={styles.bgImage} source={require('../assets/sunshine_button.png')} />
-        if (this.state.isPressed) {
-            icon = this.props.pressedIcon
+        if (this.props.isPressed) {
             bgImage = <Image style={styles.bgImage} source={require('../assets/button_depressed.png')} />
-
         }
 
         return (
-            <TouchableWithoutFeedback onPress={this.touchableOnPress}>
+            <TouchableWithoutFeedback onPress={this.props.onTap}>
                 <View style={{
                     justifyContent: 'center',
                     alignItems: 'center',
@@ -47,7 +24,7 @@ export class BigButton extends React.Component<ButtonProps, ButtonState> {
                     overflow: 'visible',
                 }}>
                     {bgImage}
-                    {icon}
+                    {this.props.icon}
                 </View>
             </TouchableWithoutFeedback>
         );
@@ -61,7 +38,4 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 0,
     },
-    icon: {
-
-    }
 });

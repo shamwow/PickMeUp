@@ -112,7 +112,7 @@ export function PlayScreen() {
 
     return (
         <>
-            <BigButton onPress={onPlayButtonGenClicked()} pressedIcon={bigButtonIcon} onUnpress={ pause() } unpressedIcon={bigButtonIcon} />
+            {/* <BigButton onPress={onPlayButtonGenClicked()} pressedIcon={bigButtonIcon} onUnpress={ pause() } unpressedIcon={bigButtonIcon} /> */}
             <View style={{marginTop: 410, paddingStart: 40, paddingEnd: 40, width: '100%', justifyContent: 'center', alignItems: 'center'}}>
                 { player }
             </View>

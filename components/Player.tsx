@@ -33,29 +33,22 @@ export function Slider(props: {onTap?: () => {}, maxMs: number, currMs: number})
   }
 
   let slider = (
-    <TouchableOpacity onPress={onTap} style={styles.slider}>
-      <View style={{flex: 1, flexDirection: 'row', backgroundColor: 'white', height: 5, borderRadius: 50}}>
-        <View style={{height: 8, flex: percentage, backgroundColor: '#DE1819', borderRadius: 50, marginTop: -1}}></View>
-      </View>
-    </TouchableOpacity>
-  )
-  if (!slider) {
-    <View style={styles.slider}>
-      <View style={{flex: 1, flexDirection: 'row', backgroundColor: 'white', height: 5, borderRadius: 50}}>
-        <View style={{height: 8, flex: percentage, backgroundColor: '#DE1819', borderRadius: 50, marginTop: -1}}></View>
-      </View>
-    </View>
-  }
-
-  return (
     <>
-      {slider}
+      <View style={styles.slider}>
+        <View style={{flex: 1, flexDirection: 'row', backgroundColor: 'white', height: 5, borderRadius: 50}}>
+          <View style={{height: 8, flex: percentage, backgroundColor: '#DE1819', borderRadius: 50, marginTop: -1}}></View>
+        </View>
+      </View>
       <View style={{flexDirection: 'row'}}>
         <Text style={{flex: 1, textAlign: 'left', fontWeight: 'bold'}}>{getMsTimestamp(currMs)}</Text>
         <Text style={{flex: 1, textAlign: 'right', fontWeight: 'bold'}}>{getMsTimestamp(maxMs)}</Text>
       </View>
     </>
   )
+  if (!onTap) {
+    return <View style={{flex: 1}}>{slider}</View>
+  }
+  return <TouchableOpacity style={{flex: 1}} onPress={onTap}>{slider}</TouchableOpacity>
 }
 
 export default class Player extends React.Component<PlayerProps, PlayerState> {
